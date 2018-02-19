@@ -13,8 +13,8 @@ class Config(object):
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
     MAIL_USE_TLS = 1
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'eshanks16@gmail.com'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'Baxters16'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['eric@theithollow.com.com']
     LANGUAGES = ['en', 'es']
     MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')
