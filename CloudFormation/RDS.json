@@ -1,0 +1,108 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "RDS",
+
+    "Parameters" : {
+
+      "AZ": {
+          "Description": "Subnet ID to provision instance in",
+          "Type": "AWS::EC2::AvailabilityZone::Name",
+          "Default": ""
+      },
+
+      "StorageSize": {
+          "Description": "Size of the database",
+          "Type": "String",
+          "Default": 20
+      },
+
+      "BackupRetentionPeriod": {
+          "Description": "How many days backups should be saved",
+          "Type": "String",
+          "Default": "0"
+      },
+
+      "DBInstanceClass": {
+          "Description" : "Size of the database server",
+          "Type": "String",
+          "Default": "db.t2.small",
+          "AllowedValues" :
+          [
+              "db.t2.small" , "db.t2.medium", "db.t2.large"
+          ]
+      },
+
+      "DBName": {
+          "Description" : "A Name for the database",
+          "Type" : "String",
+          "Default" : "hollowappdb"
+      },
+
+      "Engine": {
+          "Description" : "DB Type",
+          "Type" : "String",
+          "Default" : "MySQL",
+          "AllowedValues" :
+          [
+            "MySQL", "MariaDB", "PostgreSQL", "SQL Server", "Amazon Aurora"
+          ]
+      },
+
+       "User" : {
+          "Description" : "Database UserName",
+          "Type" : "String",
+          "Default" : "hollowapp"
+       },
+
+       "Availability": {
+          "Description" : "Multi AZ",
+          "Type" : "String",
+          "AllowedValues" :
+          [
+              "True", "False"
+          ]
+       },
+
+       "Public" : {
+          "Description" : "Publicly Accessible",
+          "Type" : "String",
+          "Default" : "False"
+       }
+
+    },
+
+    "Resources" : {
+
+      "MyDB" : {
+        "Type" : "AWS::RDS::DBInstance",
+        "Properties" :
+        {
+          "AllocatedStorage" : { "Ref" : "StorageSize" },
+          "AllowMajorVersionUpgrade" : "True",
+          "AutoMinorVersionUpgrade" : "True",
+          "AvailabilityZone" : { "Ref": "AZ" },
+          "BackupRetentionPeriod" : { "Ref" : "BackupRetentionPeriod"},
+          "DBInstanceIdentifier" : { "Ref" : "DBName"},
+          "DBInstanceClass" : { "Ref" : "DBInstanceClass"},
+          "DBName" : { "Ref" : "DBName"},
+          "Engine" : { "Ref" : "Engine"},
+          "MasterUsername" : { "Ref" : "User"},
+          "MasterUserPassword" : "Password123",
+          "MonitoringInterval" : 0,
+          "MultiAZ" : { "Ref" : "Availability"},
+          "PubliclyAccessible" : { "Ref" : "Public"},
+          "StorageEncrypted" : "False",
+          "StorageType" : "gp2"
+        }
+      }
+
+    },
+
+    "Outputs" : {
+      "DBURL": {
+          "Value": { "Fn::GetAtt": ["MyDB", "Endpoint.Address"] },
+           "Export": { "Name": "Endpoint" }
+       },
+    }
+
+}

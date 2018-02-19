@@ -1,0 +1,209 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "EC2",
+
+
+    "Parameters": {
+
+        "Environment": {
+            "Type": "String",
+            "AllowedValues": [
+                "Security",
+                "ProductionUSShared",
+                "Sandbox",
+                "Production"
+            ]
+        },
+
+        "AccountShortName": {
+            "Type": "String",
+            "AllowedValues": [
+                "sec",
+                "shs",
+                "prd",
+                "sbx"
+            ]
+        },
+
+        "VPCFunction": {
+            "Type": "String",
+            "AllowedValues": [
+                "sec",
+                "prd",
+                "dsr",
+                "sbx"
+            ]
+        },
+
+        "InstanceType": {
+            "Description": "The instance type of EC2",
+            "Type": "String",
+            "Default": "t2.small"
+        },
+
+        "Web1Subnet": {
+            "Description": "Subnet ID to provision instance in",
+            "Type": "AWS::EC2::Subnet::Id",
+            "Default": ""
+        },
+
+        "Web2Subnet": {
+            "Description": "Subnet ID to provision instance in",
+            "Type": "AWS::EC2::Subnet::Id",
+            "Default": ""
+        },
+
+        "InstanceSecurityGroups": {
+            "Description": "The security group to assign to the instance",
+            "Type": "AWS::EC2::SecurityGroup::Id",
+            "Default": ""
+        },
+
+        "VPC": {
+            "Description": "The VPC to deploy resources into",
+            "Type": "AWS::EC2::VPC::Id",
+            "Default": ""
+        },
+
+        "CloudWatchAlarmSNSTopic": {
+            "Description": "SNS topic to send events to",
+            "Type": "String",
+            "Default": "arn:aws:sns:us-east-1:346222563438:EC2-ProductionUSShared-SNSTopic
+"
+        },
+
+        "EC2KeyPair": {
+            "Description": "Name of KeyPair to assign to the instance",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "Default": ""
+        }
+    },
+
+    "Resources": {
+
+      "Web1": {
+          "Type": "AWS::CloudFormation::Stack",
+          "Properties": {
+              "TemplateURL": { "Fn::Join": [ "", [ "https://s3.amazonaws.com/", "theithollow-cfn/", "common/", "ec2-userdata.json" ] ] },
+              "Parameters": {
+                  "Environment": { "Ref": "Environment" },
+                  "AccountShortName": { "Ref": "AccountShortName" },
+                  "VPCFunction": { "Ref": "VPCFunction" },
+                  "Role": "WebServer",
+                  "Application": "HollowWeb",
+                  "InstanceType": { "Ref": "InstanceType"},
+                  "HighCPUThreshold": "75",
+                  "HighCPUPeriod": "60",
+                  "LowCPUThreshold": "25",
+                  "LowCPUPeriod": "60",
+                  "IAMInstanceProfile": "S3ReadOnly-Profile",
+                  "InstanceSubnet": {"Ref": "Web1Subnet"},
+                  "InstanceSecurityGroups": {"Ref": "InstanceSecurityGroups"},
+                  "CloudWatchAlarmSNSTopic": {"Ref": "CloudWatchAlarmSNSTopic"},
+                  "EC2KeyPair": {"Ref": "EC2KeyPair"},
+                  "ShutdownBehavior": "stop",
+                  "HostedZoneName": "",
+                  "OperatingSystem": "HollowApp",
+                  "AutoPowerOff": "True",
+                  "Bootstrap" : {
+                      "Fn::Join" : ["", [
+                          "#!/bin/bash -xe\n",
+                          "yum install -y aws-cfn-bootstrap\n",
+                          " /opt/aws/bin/cfn-init -v ",
+                          " --resource EC2Instance",
+                          " --configsets Install",
+                          " --region ", { "Ref" : "AWS::Region"}, "\n"
+                        ]]
+                  }
+              }
+          }
+      },
+
+      "Web2": {
+          "Type": "AWS::CloudFormation::Stack",
+          "Properties": {
+              "TemplateURL": { "Fn::Join": [ "", [ "https://s3.amazonaws.com/", "theithollow-cfn/", "common/", "ec2-userdata.json" ] ] },
+              "Parameters": {
+                  "Environment": { "Ref": "Environment" },
+                  "AccountShortName": { "Ref": "AccountShortName" },
+                  "VPCFunction": { "Ref": "VPCFunction" },
+                  "Role": "WebServer",
+                  "Application": "HollowWeb",
+                  "InstanceType": { "Ref": "InstanceType"},
+                  "HighCPUThreshold": "75",
+                  "HighCPUPeriod": "60",
+                  "LowCPUThreshold": "25",
+                  "LowCPUPeriod": "60",
+                  "IAMInstanceProfile": "S3ReadOnly-Profile",
+                  "InstanceSubnet": {"Ref": "Web2Subnet"},
+                  "InstanceSecurityGroups": {"Ref": "InstanceSecurityGroups"},
+                  "CloudWatchAlarmSNSTopic": {"Ref": "CloudWatchAlarmSNSTopic"},
+                  "EC2KeyPair": {"Ref": "EC2KeyPair"},
+                  "ShutdownBehavior": "stop",
+                  "HostedZoneName": "",
+                  "OperatingSystem": "HollowApp",
+                  "AutoPowerOff": "True",
+                  "Bootstrap" : {
+                      "Fn::Join" : ["", [
+                          "#!/bin/bash -xe\n",
+                          "yum install -y aws-cfn-bootstrap\n",
+                          " /opt/aws/bin/cfn-init -v ",
+                          " --resource EC2Instance",
+                          " --configsets Install",
+                          " --region ", { "Ref" : "AWS::Region"}, "\n"
+                        ]]
+                  }
+              }
+          }
+      },
+
+      "HollowLBListener": {
+          "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+          "Properties" : {
+              "DefaultActions": [{
+                  "TargetGroupArn": {"Ref": "HollowTargetGroup1"},
+                  "Type": "forward"
+              }],
+          "LoadBalancerArn": {"Ref": "HollowWebLB1"},
+          "Port": "80",
+          "Protocol": "HTTP"
+          }
+      },
+
+      "HollowWebLB1": {
+          "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+          "Properties" : {
+              "Name" : "HollowWebLB1",
+              "Scheme" : "internet-facing",
+              "SecurityGroups" : [{"Ref": "InstanceSecurityGroups"}],
+              "Subnets" : [{"Ref":"Web1Subnet"}, {"Ref":"Web2Subnet"}],
+              "Type" : "application"
+          }
+      },
+
+      "HollowTargetGroup1": {
+          "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+          "Properties": {
+            "HealthCheckIntervalSeconds" : "60",
+            "HealthCheckPath" : "/",
+            "HealthCheckPort" : "80",
+            "HealthCheckProtocol" : "HTTP",
+            "HealthCheckTimeoutSeconds" : "10",
+            "HealthyThresholdCount" : "2",
+            "Name" : "hollowwebtg1",
+            "Port" : "80",
+            "Protocol" : "HTTP",
+            "Targets" : [
+                {"Id": {"Fn::GetAtt" : [ "Web1", "Outputs.EC2InstanceID"]}, "Port": 80 },
+                {"Id": {"Fn::GetAtt" : [ "Web2", "Outputs.EC2InstanceID"]}, "Port": 80 }
+            ],
+            "TargetType" : "instance",
+            "UnhealthyThresholdCount" : "2",
+            "VpcId" : {"Ref": "VPC"}
+          },
+          "DependsOn": "Web1"
+      }
+
+
+    }
+}

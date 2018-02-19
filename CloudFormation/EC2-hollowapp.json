@@ -1,0 +1,418 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "EC2",
+
+    "Parameters": {
+
+        "Environment": {
+            "Type": "String",
+            "AllowedValues": [
+                "Security",
+                "SharedServices",
+                "Sandbox",
+                "Production",
+                "NonProduction"
+            ]
+        },
+
+        "CloudWatchAlarmSNSTopic": {
+            "Description": "SNS topic to send events to",
+            "Type": "String",
+            "Default": "arn:aws:sns:us-east-1:346222563438:EC2-ProductionUSShared-SNSTopic"
+        },
+
+        "Bootstrap": {
+            "Description": "The bootstrap commands",
+            "Type": "String",
+            "Default": ""
+        }
+
+      },
+    "Mappings": {
+      "EnvMap" : {
+        "Security" : {
+          "Key" : "sec-ec2-keypair",
+          "PubSub1" : "subnet-d8dd5985",
+          "PubSub2" : "subnet-8990d2ed",
+          "PvtSub1" : "subnet-3be06466",
+          "PvtSub2" : "	subnet-8889cbec",
+          "VPCId" : "vpc-4b9ac233",
+          "EnvShortName" : "sec"
+        },
+        "Production" : {
+          "Key" : "prd-ec2-keypair",
+          "PubSub1" : "subnet-59d95d04",
+          "PubSub2" : "subnet-3693d152",
+          "PvtSub1" : "subnet-65d45038",
+          "PvtSub2" : "subnet-65d45038",
+          "VPCId" : "vpc-7c6d3504",
+          "EnvShortName" : "prd"
+        },
+        "Sandbox" : {
+          "Key" : "SBX-ed2-keypair",
+          "PubSub1" : "subnet-a693d1c2",
+          "PubSub2" : "subnet-5d68e872",
+          "PvtSub1" : "subnet-7b90d21f",
+          "PvtSub2" : "subnet-cb6dede4",
+          "VPCId" : "vpc-8c9ac2f4",
+          "EnvShortName" : "sbx"
+        },
+        "SharedServices" : {
+          "Key" : "shs-ec2-keypair",
+          "PubSub1" : "subnet-3a66e615",
+          "PubSub2" : "subnet-48165803",
+          "PvtSub1" : "subnet-fd6dedd2",
+          "PvtSub2" : "subnet-4f165804",
+          "VPCId" : "vpc-cf6d35b7",
+          "EnvShortName" : "shs"
+        },
+        "NonProduction" : {
+          "Key" : "npd-ec2-keypair",
+          "EnvShortName" : "npd"
+        }
+      }
+    },
+
+    "Resources": {
+
+        "HollowApp1EC2": {
+            "Type": "AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "configSets" : {
+                        "Install" : [ "Install" ]
+                    },
+                    "Install" : {
+                        "packages" : {
+                            "yum" : {
+                                "httpd"     : []
+                            }
+                        },
+                        "services" : {
+                          "sysvinit" : {
+                            "httpd" : {
+                               "enabled" : "true",
+                               "ensureRunning" : "true"
+                             }
+                          }
+                        },
+                        "sources" : {
+                          "/var/www/html/": "https://s3.amazonaws.com/theithollow-web/website.zip"
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-66506c1c",
+                "KeyName": { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "Key"]},
+                "SecurityGroupIds": [ { "Ref": "HollowAppSG" } ],
+                "SubnetId": { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PubSub1"]},
+                "InstanceType": "t2.micro",
+                "UserData" : {
+                  "Fn::Base64" : {
+                    "Fn::Join": ["", [
+                      { "Ref" : "Bootstrap"},
+                      " --stack ", { "Ref" : "AWS::StackName"}
+                    ]]
+                  }
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": { "Fn::Join": [ "", [ { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "EnvShortName"]}, "-", { "Ref": "AWS::Region" }, "-", "hollowapp-1a" ] ] }
+                    },
+                    {
+                        "Key" : "App",
+                        "Value" : "HollowApp"
+                    },
+                    {
+                        "Key" : "AutoOff",
+                        "Value" : "True"
+                    }
+                ]
+            }
+        },
+
+        "HollowApp2EC2": {
+            "Type": "AWS::EC2::Instance",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "configSets" : {
+                        "Install" : [ "Install" ]
+                    },
+                    "Install" : {
+                        "packages" : {
+                            "yum" : {
+                                "httpd"     : []
+                            }
+                        },
+                        "services" : {
+                          "sysvinit" : {
+                            "httpd" : {
+                               "enabled" : "true",
+                               "ensureRunning" : "true"
+                             }
+                          }
+                        },
+                        "sources" : {
+                          "/var/www/html/": "https://s3.amazonaws.com/theithollow-web/website.zip"
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "InstanceInitiatedShutdownBehavior": "stop",
+                "ImageId": "ami-66506c1c",
+                "KeyName": { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "Key"]},
+                "SecurityGroupIds": [ { "Ref": "HollowAppSG" } ],
+                "SubnetId": { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PubSub2"]},
+                "InstanceType": "t2.micro",
+                "UserData" : {
+                  "Fn::Base64" : {
+                    "Fn::Join": ["", [
+                      { "Ref" : "Bootstrap"},
+                      " --stack ", { "Ref" : "AWS::StackName"}
+                    ]]
+                  }
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": { "Fn::Join": [ "", [ { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "EnvShortName"]}, "-", { "Ref": "AWS::Region" }, "-", "hollowapp-1b" ] ] }
+                    },
+                    {
+                        "Key" : "App",
+                        "Value" : "HollowApp"
+                    },
+                    {
+                        "Key" : "AutoOff",
+                        "Value" : "True"
+                    }
+                ]
+            }
+        },
+
+        "HollowAppSG" : {
+          "Type" : "AWS::EC2::SecurityGroup",
+          "Properties" : {
+             "GroupName" : "HollowAppSG",
+             "GroupDescription" : "Hollow App Security Rules",
+             "SecurityGroupIngress" : [
+                  {
+                    "IpProtocol" : "tcp",
+                    "FromPort" : "80",
+                    "ToPort" : "80",
+                    "CidrIp" : "0.0.0.0/0"
+                  },
+                  {
+                    "IpProtocol" : "tcp",
+                    "FromPort" : "22",
+                    "ToPort" : "22",
+                    "CidrIp" : "0.0.0.0/0"
+                  },
+                  {
+                    "IpProtocol" : "tcp",
+                    "FromPort" : "443",
+                    "ToPort" : "443",
+                    "CidrIp" : "0.0.0.0/0"
+                  },
+                  {
+                    "IpProtocol" : "tcp",
+                    "FromPort" : "5000",
+                    "ToPort" : "5000",
+                    "CidrIp" : "0.0.0.0/0"
+                  }
+                ],
+             "Tags" :  [
+                {
+                  "Key" : "App",
+                  "Value" : "HollowApp"
+                }
+              ],
+             "VpcId" : { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "VPCId"]}
+          }
+        },
+
+        "CloudWatchAlarmEC2Status": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "EC2 Health Check Status Alarm",
+                "MetricName": "StatusCheckFailed",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "1",
+                "AlarmActions": [ { "Ref": "CloudWatchAlarmSNSTopic" } ],
+                "OKActions": [],
+                "Dimensions": [
+                    {
+                        "Name": "EC2InstanceName",
+                        "Value": "DefaultResourceRole"
+                    }
+                ],
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold"
+            }
+        },
+
+        "CloudWatchAlarmHighCPU": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "High CPU",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "80",
+                "AlarmActions": [ { "Ref": "CloudWatchAlarmSNSTopic" } ],
+                "OKActions": [],
+                "Dimensions": [
+                    {
+                        "Name": "EC2InstanceName",
+                        "Value": "DefaultResourceRole"
+                    }
+                ],
+                "ComparisonOperator": "GreaterThanOrEqualToThreshold"
+            }
+        },
+
+        "CloudWatchAlarmLowCPU": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "Low CPU",
+                "MetricName": "CPUUtilization",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Average",
+                "Period": "60",
+                "EvaluationPeriods": "1",
+                "Threshold": "25",
+                "OKActions": [],
+                "Dimensions": [
+                    {
+                        "Name": "EC2InstanceName",
+                        "Value": "DefaultResourceRole"
+                    }
+                ],
+                "ComparisonOperator": "LessThanOrEqualToThreshold"
+            }
+        },
+
+        "CloudWatchAlarmEC2InstanceStatusSystemAz1": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "Trigger Recovery of Instance if instance status System check fails.",
+                "MetricName": "StatusCheckFailed_System",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Minimum",
+                "Period": "60",
+                "EvaluationPeriods": "3",
+                "Threshold": "0",
+                "AlarmActions": [
+                    { "Ref": "CloudWatchAlarmSNSTopic" },
+                    { "Fn::Join": [ "", [ "arn:aws:automate:", { "Ref": "AWS::Region" }, ":ec2:recover" ] ] }
+                ],
+                "OKActions": [],
+                "Dimensions": [
+                    {
+                        "Name": "InstanceId",
+                        "Value": { "Ref": "HollowApp1EC2" }
+                    }
+                ],
+                "ComparisonOperator": "GreaterThanThreshold"
+            }
+        },
+
+        "CloudWatchAlarmEC2InstanceStatusInstanceAz1": {
+            "Type": "AWS::CloudWatch::Alarm",
+            "Properties": {
+                "AlarmDescription": "Trigger Recovery of Instance if instance status Instance check fails.",
+                "MetricName": "StatusCheckFailed_Instance",
+                "Namespace": "AWS/EC2",
+                "Statistic": "Minimum",
+                "Period": "60",
+                "EvaluationPeriods": "3",
+                "Threshold": "0",
+                "AlarmActions": [
+                    { "Ref": "CloudWatchAlarmSNSTopic" },
+                    { "Fn::Join": [ "", [ "arn:aws:automate:", { "Ref": "AWS::Region"  }, ":ec2:reboot" ] ] }
+                ],
+                "OKActions": [],
+                "Dimensions": [
+                    {
+                        "Name": "InstanceId",
+                        "Value": { "Ref": "HollowApp1EC2" }
+                    }
+                ],
+                "ComparisonOperator": "GreaterThanThreshold"
+            }
+        },
+
+        "HollowLBListener": {
+            "Type" : "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties" : {
+                "DefaultActions": [{
+                    "TargetGroupArn": {"Ref": "HollowTargetGroup1"},
+                    "Type": "forward"
+                }],
+            "LoadBalancerArn": {"Ref": "HollowWebLB1"},
+            "Port": "80",
+            "Protocol": "HTTP"
+            }
+        },
+
+        "HollowWebLB1": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties" : {
+                "Name" : "HollowWebLB1",
+                "Scheme" : "internet-facing",
+                "SecurityGroups" : [{"Ref": "HollowAppSG"}],
+                "Subnets" : [{ "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PubSub1"]}, { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PubSub2"]}],
+                "Type" : "application"
+            }
+        },
+
+        "HollowTargetGroup1": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+              "HealthCheckIntervalSeconds" : "60",
+              "HealthCheckPath" : "/",
+              "HealthCheckPort" : "80",
+              "HealthCheckProtocol" : "HTTP",
+              "HealthCheckTimeoutSeconds" : "10",
+              "HealthyThresholdCount" : "2",
+              "Name" : "hollowwebtg1",
+              "Port" : "80",
+              "Protocol" : "HTTP",
+              "Targets" : [
+                  {"Id": {"Ref" : "HollowApp1EC2"}, "Port": 80 },
+                  {"Id": {"Ref" : "HollowApp2EC2"}, "Port": 80 }
+              ],
+              "TargetType" : "instance",
+              "UnhealthyThresholdCount" : "2",
+              "VpcId" : { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "VPCId"]}
+            }
+        }
+    },
+
+
+    "Outputs": {
+
+        "HollowApp1EC2": {
+            "Description": "Instance ID",
+            "Value": { "Ref": "HollowApp1EC2" }
+        },
+
+        "HollowApp2EC2" : {
+            "Description": "Instance ID",
+            "Value": { "Ref": "HollowApp2EC2"}
+        },
+
+        "HollowWebLB1" : {
+            "Description": "HollowApp Load Balancer",
+            "Value": { "Ref": "HollowWebLB1"}
+        }
+
+    }
+}
