@@ -2,7 +2,7 @@
 - hosts: all 
   tasks:
     - name: Change permissions of setup script.
-      file: dest=/home/ubuntu/hollowapp/deploy/appSetup/appSetup.sh mod=a+x
+      file: dest=/home/ubuntu/hollowapp/deploy/appSetup/appSetup.sh mode=a+x
       
     - name: Change the working directory to somedir/ before executing the command.
       shell: /home/ubuntu/hollowapp/deploy/appSetup/appSetup.sh
