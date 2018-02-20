@@ -1,0 +1,8 @@
+---
+
+hosts: all
+tasks:
+    - name: Change the working directory to somedir/ before executing the command.
+      shell: /home/ubuntu/hollowapp/deploy/appSetup/appSetup.sh
+      args:
+        chdir: /home/ubuntu/hollowapp
