@@ -33,3 +33,5 @@ sudo rm /etc/nginx/sites-enabled/default
 sudo cp deploy/appSetup/hollowapp /etc/nginx/sites-enabled/hollowapp
 
 sudo service nginx reload
+
+sudo reboot
