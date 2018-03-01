@@ -2,8 +2,10 @@
 import boto3
 import time
 import json
+import sys, os
 
-client = boto3.client('cloudformation', region_name='us-east-1')
+session = boto3.Session(profile_name='sandbox')
+client = session.client('cloudformation')
 
 #functions
 def status(stack):
@@ -29,6 +31,10 @@ response = client.create_stack(
         {
             'ParameterKey': "AZ",
             'ParameterValue': "us-east-1a"
+        },
+        {
+            'ParameterKey': "Environment",
+            'ParameterValue': "Sandbox"
         }
     ]
 )
@@ -37,7 +43,7 @@ varPass = {'RDS':'HollowApp-RDS'}
 
 response = client.create_stack(
     StackName='HollowApp-EC2-LB',
-    TemplateURL='https://s3.amazonaws.com/theithollow-cfn/HollowApp/EC2-hollowapp.json',
+    TemplateURL='https://s3.amazonaws.com/theithollow-cfn/HollowApp/ec2-HollowApp.json',
     Parameters=[
         {
             'ParameterKey': "Environment",
@@ -54,4 +60,4 @@ with open('variables.json', 'w') as outfile:
     json.dump(varPass, outfile)
 
 with open('variables.json', 'r') as infile:
-    print infile.read()
+    data = infile.read()

@@ -12,8 +12,8 @@ pip install gunicorn pymysql
 echo "SECRET_KEY=52cb883e323b48d78a0a36e8e951ba4a" >> /home/ubuntu/hollowapp/.env
 echo "MAIL_SERVER=localhost" >> /home/ubuntu/hollowapp/.env
 echo "MAIL_PORT=25" >> /home/ubuntu/hollowapp/.env
-echo "DATABASE_URL=mysql+pymysql://hollowapp:Password123@hollowappdb.cxnvq3t2hoei.us-east-1.rds.amazonaws.com/hollowapp" >> /home/ubuntu/hollowapp/.env
 echo "ELASTICSEARCH_URI=http://localhost:9200" >> /home/ubuntu/hollowapp/.env
+echo "DATABASE_URL=mysql+pymysql://hollowapp:Password123@hollowappdb.awshollow.local:3306/hollowapp" >> /home/ubuntu/hollowapp/.env
 
 echo "export FLASK_APP=hollowapp.py">> ~/.profile
 export FLASK_APP=hollowapp.py
@@ -33,5 +33,3 @@ sudo rm /etc/nginx/sites-enabled/default
 sudo cp deploy/appSetup/hollowapp /etc/nginx/sites-enabled/hollowapp
 
 sudo service nginx reload
-
-sudo reboot

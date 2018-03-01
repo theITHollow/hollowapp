@@ -35,7 +35,7 @@
       "DBName": {
           "Description" : "A Name for the database",
           "Type" : "String",
-          "Default" : "hollowappdb"
+          "Default" : "hollowapp"
       },
 
       "Engine": {
@@ -67,8 +67,64 @@
           "Description" : "Publicly Accessible",
           "Type" : "String",
           "Default" : "False"
+       },
+
+       "Environment": {
+           "Type": "String",
+           "AllowedValues": [
+               "Security",
+               "SharedServices",
+               "Sandbox",
+               "Production",
+               "NonProduction"
+           ]
        }
 
+    },
+
+    "Mappings": {
+      "EnvMap" : {
+        "Security" : {
+          "Key" : "sec-ec2-keypair",
+          "PubSub1" : "subnet-d8dd5985",
+          "PubSub2" : "subnet-8990d2ed",
+          "PvtSub1" : "subnet-3be06466",
+          "PvtSub2" : "subnet-8889cbec",
+          "VPCId" : "vpc-4b9ac233",
+          "EnvShortName" : "sec"
+        },
+        "Production" : {
+          "Key" : "prd-ec2-keypair",
+          "PubSub1" : "subnet-59d95d04",
+          "PubSub2" : "subnet-3693d152",
+          "PvtSub1" : "subnet-65d45038",
+          "PvtSub2" : "subnet-65d45038",
+          "VPCId" : "vpc-7c6d3504",
+          "EnvShortName" : "prd"
+        },
+        "Sandbox" : {
+          "Key" : "SBX-ed2-keypair",
+          "PubSub1" : "subnet-a693d1c2",
+          "PubSub2" : "subnet-5d68e872",
+          "PvtSub1" : "subnet-7b90d21f",
+          "PvtSub2" : "subnet-cb6dede4",
+          "VPCId" : "vpc-8c9ac2f4",
+          "EnvShortName" : "sbx"
+        },
+        "SharedServices" : {
+          "Key" : "shs-ec2-keypair",
+          "PubSub1" : "subnet-3a66e615",
+          "PubSub2" : "subnet-48165803",
+          "PvtSub1" : "subnet-fd6dedd2",
+          "PvtSub2" : "subnet-4f165804",
+          "VPCId" : "vpc-cf6d35b7",
+          "EnvShortName" : "shs"
+        },
+        "NonProduction" : {
+          "Key" : "npd-ec2-keypair",
+          "EnvShortName" : "npd"
+        }
+      }
     },
 
     "Resources" : {
@@ -92,9 +148,34 @@
           "MultiAZ" : { "Ref" : "Availability"},
           "PubliclyAccessible" : { "Ref" : "Public"},
           "StorageEncrypted" : "False",
-          "StorageType" : "gp2"
+          "StorageType" : "gp2",
+          "DBSubnetGroupName" : {"Ref" : "DBSubnetGroup"},
+          "VPCSecurityGroups" : ["sg-d76749a0"]
         }
+      },
+
+      "DBSubnetGroup" : {
+        "Type" : "AWS::RDS::DBSubnetGroup",
+        "Properties" : {
+          "DBSubnetGroupDescription" : "HollowApp RDS Subnet Group",
+          "DBSubnetGroupName" : "HollowAppDBSubGroup",
+          "SubnetIds" : [{ "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PvtSub1"]}, { "Fn::FindInMap" : ["EnvMap", { "Ref" : "Environment" }, "PvtSub2"]}]
+        }
+      },
+
+      "DNSRecordSet" : {
+        "Type" : "AWS::Route53::RecordSet",
+        "Properties" : {
+          "Comment" : "RDS Endpoint for HollowApp",
+          "HostedZoneName" : "awshollow.local.",
+          "Name" : "hollowappdb.awshollow.local",
+          "ResourceRecords" : [ {"Fn::GetAtt": ["MyDB","Endpoint.Address"]}],
+          "TTL" : 600,
+          "Type" : "CNAME"
+        },
+        "DependsOn" : "MyDB"
       }
+
 
     },
 
@@ -102,7 +183,7 @@
       "DBURL": {
           "Value": { "Fn::GetAtt": ["MyDB", "Endpoint.Address"] },
            "Export": { "Name": "Endpoint" }
-       },
+       }
     }
 
 }
